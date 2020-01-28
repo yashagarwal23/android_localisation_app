@@ -22,7 +22,7 @@ To launch Rtabmap ROS node and an RVIZ visualizer, use the RTABMAP.launch launch
 ```roslaunch launch/RTABMAP.launch```
 
 
-##Android Odometry
+## Android Odometry
 Android odometry is achieved using an extended kalman filter with the gyroscope, accelerometer and magnetometers available on board. 
 The ``android_localization_app`` directory includes the source code for this purpose. We are working on importing maps saved using RTAB-Map on non-rooted android. Our preferred strategy involves creating a 2D occupancy grid for this purpose with location markers across the environment.
 
