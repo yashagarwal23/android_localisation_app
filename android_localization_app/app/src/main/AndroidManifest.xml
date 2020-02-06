@@ -3,8 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="yashagarwal.indoornavigation">
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--
+         The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
+         Google Maps Android API v2, but you must specify either coarse or fine
+         location permissions for the 'MyLocation' functionality.
+    -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -12,48 +17,22 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme"
         tools:replace="android:icon">
+
+        <!--
+             The API key for Google Maps-based APIs is defined as a string resource.
+             (See the file "res/values/google_maps_api.xml").
+             Note that the API key is linked to the encryption key used to sign the APK.
+             You need a different API key for each encryption key, including the release key that is used to
+             sign the APK for publishing.
+             You can define the keys for the debug and release targets in src/debug/ and src/release/.
+        -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
         <activity
-            android:name="yashagarwal.indoornavigation.activity.StepCountActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_step_counter"
-            android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.StepCalibrationActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_calibration"
-            android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.GraphActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_graph"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.HeadingActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_orientation"
-            android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.DataCollectActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_data_collection"
-            android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.UserActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_user"
-            android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
-        <activity
-            android:name="yashagarwal.indoornavigation.activity.UserListActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat">
+            android:name=".MapGraphActivity"
+            android:label="@string/title_activity_map_graph">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -61,11 +40,59 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="yashagarwal.indoornavigation.activity.DebugToolsActivity"
+            android:name=".activity.StepCountActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_step_counter"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material" />
+        <activity
+            android:name=".activity.StepCalibrationActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_calibration"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material" />
+        <activity
+            android:name=".activity.GraphActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_graph"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat">
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+        </activity>
+        <activity
+            android:name=".activity.HeadingActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_orientation"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material" />
+        <activity
+            android:name=".activity.DataCollectActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_data_collection"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material" />
+        <activity
+            android:name=".activity.UserActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_user"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material" />
+        <activity
+            android:name=".activity.UserListActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat"></activity>
+        <activity
+            android:name=".activity.DebugToolsActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_debug_tools"
             android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.Material"></activity>
+            android:theme="@android:style/Theme.Material" />
     </application>
 
 </manifest>

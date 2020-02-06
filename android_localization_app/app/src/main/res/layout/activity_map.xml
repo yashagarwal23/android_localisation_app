@@ -1,10 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     xmlns:mapbox="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
     <com.mapbox.mapboxsdk.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
@@ -12,32 +15,62 @@
         mapbox:mapbox_cameraTargetLat="38.89770"
         mapbox:mapbox_cameraTargetLng="-77.03655"
         mapbox:mapbox_cameraZoom="18"/>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/graph_layout_relative">
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_height="match_parent"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:id="@+id/inside_relative_layout">
+            <LinearLayout
+                android:id="@+id/direction_linear_layout"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:orientation="horizontal"
+                android:layout_alignParentTop="true"
+                android:layout_marginBottom="10dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:textSize="30sp"
+                    android:layout_height="match_parent"
+                    android:textAlignment="center"
+                    android:padding="2dp"
+                    android:visibility="visible"
+                    android:text="Move in this direction"></TextView>
+                <ImageView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:visibility="visible"
+                    android:src="@drawable/ic_arrow_up"
+                    android:id="@+id/arrow_icon"></ImageView>
+            </LinearLayout>
+            <LinearLayout
+                android:layout_below="@id/direction_linear_layout"
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:id="@+id/linearLayoutGraph"/>
+            <android.support.design.widget.FloatingActionButton
+                android:id="@+id/fab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentEnd="true"
+                android:tint="@android:color/white"
+                android:backgroundTint="#ff0099ff"
+                app:borderWidth="0dp"
+                app:fabSize="normal"
+                app:srcCompat="@drawable/ic_play_arrow_black_24dp" />
 
-    <LinearLayout
-        android:id="@+id/floor_level_buttons"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:background="@color/mapboxBlue"
-        android:orientation="vertical">
+        </RelativeLayout>
+    </RelativeLayout>
 
-        <Button
-            android:id="@+id/second_level_button"
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:background="?android:attr/selectableItemBackground"
-            android:text="2"
-            android:textColor="@color/mapboxWhite"/>
 
-        <Button
-            android:id="@+id/ground_level_button"
-            android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:background="?android:attr/selectableItemBackground"
-            android:text="G"
-            android:textColor="@color/mapboxWhite"/>
-
-    </LinearLayout>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</FrameLayout>

@@ -42,4 +42,5 @@
     <string name="title_activity_step_count_calibration">StepCountCalibrationActivity</string>
     <string name="access_token">pk.eyJ1IjoieWFzaC1hZ2Fyd2FsIiwiYSI6ImNrNXF5bGtrbTA3MnQzam1xYjR5NGw2NW4ifQ.9wQ13XrmaHp7u4vb0RZ9iA
 </string>
+    <string name="title_activity_map_graph">Map</string>
 </resources>

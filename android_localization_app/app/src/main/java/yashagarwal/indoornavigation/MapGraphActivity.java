@@ -1,10 +1,8 @@
-package yashagarwal.indoornavigation.activity;
+package yashagarwal.indoornavigation;
 
 import android.Manifest;
-import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -12,45 +10,46 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
+import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.data.geojson.GeoJsonLayer;
 import com.mapbox.geojson.Point;
-import com.mapbox.geojson.Polygon;
-import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.maps.MapView;
-import com.mapbox.mapboxsdk.maps.MapboxMap;
-import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
-import com.mapbox.mapboxsdk.maps.Style;
-import com.mapbox.mapboxsdk.style.layers.FillLayer;
-import com.mapbox.mapboxsdk.style.layers.LineLayer;
+import com.mapbox.mapboxsdk.plugins.annotation.LineOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
-import com.mapbox.turf.TurfJoins;
+
+import org.json.JSONException;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
-import yashagarwal.indoornavigation.R;
+import yashagarwal.indoornavigation.activity.GraphActivity;
 import yashagarwal.indoornavigation.extra.ExtraFunctions;
 import yashagarwal.indoornavigation.filewriting.DataFileWriter;
 import yashagarwal.indoornavigation.graph.ScatterPlot;
@@ -59,18 +58,9 @@ import yashagarwal.indoornavigation.orientation.GyroscopeEulerOrientation;
 import yashagarwal.indoornavigation.orientation.MagneticFieldOrientation;
 import yashagarwal.indoornavigation.stepcounting.DynamicStepCounter;
 
-import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.interpolate;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.stop;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.zoom;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillOpacity;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineOpacity;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
+public class MapGraphActivity extends FragmentActivity implements OnMapReadyCallback, SensorEventListener, LocationListener {
 
-public class GraphActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
-
+    private GoogleMap mMap;
     private static final long GPS_SECONDS_PER_WEEK = 511200L;
 
     private static final float GYROSCOPE_INTEGRATION_SENSITIVITY = 0.0025f;
@@ -93,6 +83,8 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             "XY_Data_Set" + "\n" + "weekGPS;secGPS;t;strideLength;magHeading;gyroHeading;originalPointX;originalPointY;rotatedPointX;rotatedPointY"
     };
 
+//    Pah
+
     float current = 0;
 
     private DynamicStepCounter dynamicStepCounter;
@@ -112,10 +104,6 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
     float[] magBias;
     float[] currGravity; //current gravity
     float[] currMag; //current magnetic field
-    private float[] mRotation = null;
-    private float rMat[] = new float[16];
-    private float orientation[] = new float[3];
-    private float mAzimuth = 0.0f;
 
     private boolean isRunning;
     private boolean isCalibrated;
@@ -131,27 +119,22 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
     private boolean firstRun;
 
     private float initialHeading;
+    LatLng prev;
+    Polyline myLocation;
 
-    private GeoJsonSource indoorBuildingSource;
-
-    private List<List<Point>> boundingBoxList;
-    private View levelButtons;
-    private MapView mapView;
-
-    @TargetApi(Build.VERSION_CODES.KITKAT)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_map_graph);
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
-        Mapbox.getInstance(this, getString(R.string.access_token));
-
-        setContentView(R.layout.activity_map);
-
-        // get location permission
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(GraphActivity.this, new String[] {
+            ActivityCompat.requestPermissions(MapGraphActivity.this, new String[] {
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -176,23 +159,11 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
         weeksGPS = secondsGPS = 0;
         startTime = 0;
 
-        //getting global settings
-//        strideLength = getIntent().getFloatExtra("stride_length", 2.5f);
-//        isCalibrated = getIntent().getBooleanExtra("is_calibrated", false);
-//        gyroBias = getIntent().getFloatArrayExtra("gyro_bias");
-//        magBias = getIntent().getFloatArrayExtra("mag_bias");
-
-        strideLength = 0.9f;
+        strideLength = 0.2f;
         isCalibrated = false;
         gyroBias = new float[3];
         magBias = new float[3];
 
-        //using user_name to get index of user in userList, which is also the index of the user's stride_length
-//        counterSensitivity = getIntent().getStringExtra("preferred_step_counter");
-//
-//        //usingDefaultCounter is counterSensitivity = "default" and sensor is available
-//        usingDefaultCounter = counterSensitivity.equals("default") &&
-//                getIntent().getBooleanExtra("step_detector", false);
 
         counterSensitivity = "0";
         usingDefaultCounter = false;
@@ -213,44 +184,45 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
         //setting up graph with origin
         scatterPlot = new ScatterPlot("");
         scatterPlot.addPoint(0, 0);
+
         mLinearLayout.addView(scatterPlot.getGraphView(getApplicationContext()));
 
         //message user w/ user_name and stride_length info
-//        Toast.makeText(GraphActivity.this, "Stride Length: " + strideLength, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(MapGraphActivity.this, "Stride Length: " + strideLength, Toast.LENGTH_SHORT).show();
 
         //starting GPS location tracking
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, GraphActivity.this);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, MapGraphActivity.this);
 
         //starting sensors
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
-        sensorManager.registerListener(GraphActivity.this,
+        sensorManager.registerListener(MapGraphActivity.this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
                 SensorManager.SENSOR_DELAY_FASTEST);
 
         if (isCalibrated) {
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED),
                     SensorManager.SENSOR_DELAY_FASTEST);
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED),
                     SensorManager.SENSOR_DELAY_FASTEST);
         } else {
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
                     SensorManager.SENSOR_DELAY_FASTEST);
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
                     SensorManager.SENSOR_DELAY_FASTEST);
         }
 
         if (usingDefaultCounter) {
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR),
                     SensorManager.SENSOR_DELAY_FASTEST);
         } else {
-            sensorManager.registerListener(GraphActivity.this,
+            sensorManager.registerListener(MapGraphActivity.this,
                     sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
                     SensorManager.SENSOR_DELAY_FASTEST);
         }
@@ -298,14 +270,14 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
                     dataFileWriter.writeToFile("Magnetic_Field_Uncalibrated", "Magnetic_field_bias:" +
                             Arrays.toString(magBias));
 
-                    fabButton.setImageDrawable(ContextCompat.getDrawable(GraphActivity.this, R.drawable.ic_pause_black_24dp));
+                    fabButton.setImageDrawable(ContextCompat.getDrawable(MapGraphActivity.this, R.drawable.ic_pause_black_24dp));
 
                 } else {
 
                     firstRun = true;
                     isRunning = false;
 
-                    fabButton.setImageDrawable(ContextCompat.getDrawable(GraphActivity.this, R.drawable.ic_play_arrow_black_24dp));
+                    fabButton.setImageDrawable(ContextCompat.getDrawable(MapGraphActivity.this, R.drawable.ic_play_arrow_black_24dp));
 
                 }
             }
@@ -332,6 +304,9 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
                 float rPointX = -oPointY;
                 float rPointY = oPointX;
 
+                LatLng next = new LatLng(prev.latitude + rPointY/(6*1e5), prev.longitude + rPointX/(6*1e5));
+                UpdatePoints(next);
+
                 scatterPlot.addPoint(rPointX, rPointY);
 
                 mLinearLayout.removeAllViews();
@@ -340,19 +315,6 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             }
         });
 
-//        final ImageView imageView = (ImageView)findViewById(R.id.arrow_icon);
-//        final Handler handler = new Handler();
-//        final long period = 250;
-//        new Timer().schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                // do your task here
-//                imageView.setRotation(current);
-//                current += 2;
-//            }
-//        }, 0, period);
-
-//        load_map();
     }
 
     @Override
@@ -372,7 +334,7 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                     || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
                     || ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(GraphActivity.this, new String[] {
+                ActivityCompat.requestPermissions(MapGraphActivity.this, new String[] {
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -380,39 +342,39 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
                 finish();
             }
 
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, GraphActivity.this);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, MapGraphActivity.this);
 
             if (isCalibrated) {
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED),
                         SensorManager.SENSOR_DELAY_FASTEST);
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED),
                         SensorManager.SENSOR_DELAY_FASTEST);
             } else {
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
                         SensorManager.SENSOR_DELAY_FASTEST);
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
                         SensorManager.SENSOR_DELAY_FASTEST);
             }
 
             if (usingDefaultCounter) {
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR),
                         SensorManager.SENSOR_DELAY_FASTEST);
             } else {
-                sensorManager.registerListener(GraphActivity.this,
+                sensorManager.registerListener(MapGraphActivity.this,
                         sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
                         SensorManager.SENSOR_DELAY_FASTEST);
             }
 
-            fabButton.setImageDrawable(ContextCompat.getDrawable(GraphActivity.this, R.drawable.ic_pause_black_24dp));
+            fabButton.setImageDrawable(ContextCompat.getDrawable(MapGraphActivity.this, R.drawable.ic_pause_black_24dp));
 
         } else {
 
-            fabButton.setImageDrawable(ContextCompat.getDrawable(GraphActivity.this, R.drawable.ic_play_arrow_black_24dp));
+            fabButton.setImageDrawable(ContextCompat.getDrawable(MapGraphActivity.this, R.drawable.ic_play_arrow_black_24dp));
 
         }
 
@@ -437,51 +399,6 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             currMag = event.values;
 //            Log.d("mag_values", Arrays.toString(event.values));
         }
-//        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-//            mRotation = event.values.clone();
-//            if (mRotation != null) {
-//                float RmatVector[] = new float[16];
-//                SensorManager.getRotationMatrixFromVector(RmatVector, mRotation);
-//                SensorManager.remapCoordinateSystem(RmatVector, SensorManager.AXIS_X, SensorManager.AXIS_Z, rMat);
-//                SensorManager.getOrientation(rMat, orientation);
-//                mAzimuth = (float)Math.toDegrees((double)orientation[0]);  //azimuth
-//                if (mAzimuth < 0) {
-//                    mAzimuth = 360 + mAzimuth;
-//                }
-//            }
-//            Toast.makeText(this, "Direction Changed", Toast.LENGTH_SHORT).show();
-//            mRotation = null;
-//            float rotation = -mAzimuth * 360 / (2 * 3.14159f);
-//            arrowImageView.setRotation(rotation);
-//        }
-
-//        mRotation = event.values.clone();
-//        if (mRotation != null) {
-//            float RmatVector[] = new float[16];
-//            SensorManager.getRotationMatrixFromVector(RmatVector, mRotation);
-//            SensorManager.remapCoordinateSystem(RmatVector, SensorManager.AXIS_X, SensorManager.AXIS_Z, rMat);
-//            SensorManager.getOrientation(rMat, orientation);
-//            mAzimuth = (float)Math.toDegrees((double)orientation[0]);  //azimuth
-//            if (mAzimuth < 0) {
-//                mAzimuth = 360 + mAzimuth;
-//            }
-//        }
-//        mRotation = null;
-
-        float degree = Math.round(event.values[0]);
-        RotateAnimation ra = new RotateAnimation(
-                current,
-                -degree,
-                Animation.RELATIVE_TO_SELF, 0.5f,
-                Animation.RELATIVE_TO_SELF,
-                0.5f);
-
-        ra.setDuration(210);
-
-        ra.setFillAfter(true);
-        if (Math.abs(current + degree) > 10)
-            arrowImageView.startAnimation(ra);
-        current = -degree;
 
         if (isRunning) {
             if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
@@ -559,6 +476,9 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
                     float rPointX = -oPointY;
                     float rPointY = oPointX;
 
+                    LatLng next = new LatLng(prev.latitude + rPointY/(6*1e5), prev.longitude + rPointX/(6*1e5));
+                    UpdatePoints(next);
+
                     scatterPlot.addPoint(rPointX, rPointY);
 
                     //saving XY location data
@@ -609,6 +529,9 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
                     float rPointX = -oPointY;
                     float rPointY = oPointX;
 
+                    LatLng next = new LatLng(prev.latitude + rPointY/(6*1e5), prev.longitude + rPointX/(6*1e5));
+                    UpdatePoints(next);
+
                     scatterPlot.addPoint(rPointX, rPointY);
 
                     //saving XY location data
@@ -658,6 +581,7 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             areFilesCreated = true;
         }
     }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -665,123 +589,98 @@ public class GraphActivity extends AppCompatActivity implements SensorEventListe
             case 0:
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(GraphActivity.this, "Thank you for providing permission!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MapGraphActivity.this, "Thank you for providing permission!", Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
-                    Toast.makeText(GraphActivity.this, "Need location permission to create tour.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MapGraphActivity.this, "Need location permission to create tour.", Toast.LENGTH_LONG).show();
                     finish();
                 }
                 break;
         }
     }
 
-    private void load_map() {
-        mapView = findViewById(R.id.mapView);
-        mapView.getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(@NonNull final MapboxMap mapboxMap) {
-                mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
-                    @Override
-                    public void onStyleLoaded(@NonNull Style style) {
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     * This is where we can add markers or lines, add listeners or move the camera. In this case,
+     * we just add a marker near Sydney, Australia.
+     * If Google Play services is not installed on the device, the user will be prompted to install
+     * it inside the SupportMapFragment. This method will only be triggered once the user has
+     * installed Google Play services and returned to the app.
+     */
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
 
-                        final List<Point> boundingBox = new ArrayList<>();
+        LatLng start = new LatLng(38.89770, -77.03670);
+        LatLng mid = new LatLng(38.89767024, -77.03670);
+        LatLng destination = new LatLng(38.89767024, -77.03640063);
+        mMap.addMarker(new MarkerOptions().position(destination).title("Destination"));
 
-                        boundingBox.add(Point.fromLngLat(-77.03791, 38.89715));
-                        boundingBox.add(Point.fromLngLat(-77.03791, 38.89811));
-                        boundingBox.add(Point.fromLngLat(-77.03532, 38.89811));
-                        boundingBox.add(Point.fromLngLat(-77.03532, 38.89708));
+        mMap.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                        this, R.raw.style_json));
 
-                        boundingBoxList = new ArrayList<>();
-                        boundingBoxList.add(boundingBox);
+        mMap.addPolyline(new PolylineOptions()
+                .add(start, mid, destination)
+                .width(10)
+                .color(Color.RED));
 
-                        mapboxMap.addOnCameraMoveListener(new MapboxMap.OnCameraMoveListener() {
-                            @Override
-                            public void onCameraMove() {
-                                if (mapboxMap.getCameraPosition().zoom > 16) {
-                                    if (TurfJoins.inside(Point.fromLngLat(mapboxMap.getCameraPosition().target.getLongitude(),
-                                            mapboxMap.getCameraPosition().target.getLatitude()), Polygon.fromLngLats(boundingBoxList))) {
-                                        if (levelButtons.getVisibility() != View.VISIBLE) {
-//                                            showLevelButton();
-                                        }
-                                    } else {
-                                        if (levelButtons.getVisibility() == View.VISIBLE) {
-//                                            hideLevelButton();
-                                        }
-                                    }
-                                } else if (levelButtons.getVisibility() == View.VISIBLE) {
-//                                    hideLevelButton();
-                                }
-                            }
-                        });
-                        indoorBuildingSource = new GeoJsonSource(
-                                "indoor-building", loadJsonFromAsset("white_house_lvl_0.geojson"));
-                        style.addSource(indoorBuildingSource);
+        PolylineOptions routes = new PolylineOptions().width(10).color(Color.BLUE);
+        myLocation = mMap.addPolyline(routes);
 
-// Add the building layers since we know zoom levels in range
-                        loadBuildingLayer(style);
-                    }
-                });
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20));
+        mMap.setIndoorEnabled(false);
 
-//                Button buttonSecondLevel = findViewById(R.id.second_level_button);
-//                buttonSecondLevel.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View view) {
-//                        indoorBuildingSource.setGeoJson(loadJsonFromAsset("white_house_lvl_1.geojson"));
-//                    }
-//                });
-//
-//                Button buttonGroundLevel = findViewById(R.id.ground_level_button);
-//                buttonGroundLevel.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View view) {
-//                        indoorBuildingSource.setGeoJson(loadJsonFromAsset("white_house_lvl_0.geojson"));
-//                    }
-//                });
-            }
-        });
-    }
-
-    private void loadBuildingLayer(@NonNull Style style) {
-// Method used to load the indoor layer on the map. First the fill layer is drawn and then the
-// line layer is added.
-
-        FillLayer indoorBuildingLayer = new FillLayer("indoor-building-fill", "indoor-building").withProperties(
-                fillColor(Color.parseColor("#eeeeee")),
-// Function.zoom is used here to fade out the indoor layer if zoom level is beyond 16. Only
-// necessary to show the indoor map at high zoom levels.
-                fillOpacity(interpolate(exponential(1f), zoom(),
-                        stop(16f, 0f),
-                        stop(16.5f, 0.5f),
-                        stop(17f, 1f))));
-
-        style.addLayer(indoorBuildingLayer);
-
-        LineLayer indoorBuildingLineLayer = new LineLayer("indoor-building-line", "indoor-building").withProperties(
-                lineColor(Color.parseColor("#50667f")),
-                lineWidth(0.5f),
-                lineOpacity(interpolate(exponential(1f), zoom(),
-                        stop(16f, 0f),
-                        stop(16.5f, 0.5f),
-                        stop(17f, 1f))));
-        style.addLayer(indoorBuildingLineLayer);
-    }
-
-    private String loadJsonFromAsset(String filename) {
-// Using this method to load in GeoJSON files from the assets folder.
-
+        GeoJsonLayer layer = null;
         try {
-            InputStream is = getAssets().open(filename);
-            int size = is.available();
-            byte[] buffer = new byte[size];
-            is.read(buffer);
-            is.close();
-            return new String(buffer, Charset.forName("UTF-8"));
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
+            layer = new GeoJsonLayer(mMap, R.raw.white_house_lvl_0,
+                    this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
+        layer.addLayerToMap();
     }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event){
 
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+            float degree = current-90;
+            current -= 90;
+            RotateAnimation ra = new RotateAnimation(
+                    current,
+                    degree,
+                    Animation.RELATIVE_TO_SELF, 0.5f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.5f);
+            ra.setDuration(210);
+            ra.setFillAfter(true);
+            arrowImageView.startAnimation(ra);
+            return true;
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
+            float degree = current+90;
+            current += 90;
+            RotateAnimation ra = new RotateAnimation(
+                    current,
+                    degree,
+                    Animation.RELATIVE_TO_SELF, 0.5f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.5f);
+            ra.setDuration(210);
+            ra.setFillAfter(true);
+            arrowImageView.startAnimation(ra);
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
+    private void UpdatePoints(LatLng newlatlng) {
+        List<LatLng> points = myLocation.getPoints();
+        points.add(newlatlng);
+        myLocation.setPoints(points);
+    }
 }
-

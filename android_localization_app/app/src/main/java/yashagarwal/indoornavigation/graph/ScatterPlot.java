@@ -65,20 +65,29 @@ public class ScatterPlot {
         myMultiRenderer.setShowLegend(false); //hide legend
 
         //set chart and label sizes
-        myMultiRenderer.setChartTitle("Position");
-        myMultiRenderer.setChartTitleTextSize(75);
-        myMultiRenderer.setLabelsTextSize(40);
+        myMultiRenderer.setChartTitle("");
+        myMultiRenderer.setChartTitleTextSize(0);
+        myMultiRenderer.setLabelsTextSize(0);
+        myMultiRenderer.setShowLabels(false);
 
         //setting X labels and Y labels position
-        int[] chartMargins = {100, 100, 25, 100}; //top, left, bottom, right
+        int[] chartMargins = {0, 0, 0, 0}; //top, left, bottom, right
         myMultiRenderer.setMargins(chartMargins);
-        myMultiRenderer.setYLabelsPadding(50);
-        myMultiRenderer.setXLabelsPadding(10);
+        myMultiRenderer.setYLabelsPadding(0);
+        myMultiRenderer.setXLabelsPadding(0);
+        myMultiRenderer.setXLabels(0);
+        myMultiRenderer.setYLabels(0);
+//        myMultiRenderer.setApplyBackgroundColor(true);
+//        myMultiRenderer.setBackgroundColor(Color.parseColor("#FFF7F8"));
+//        myMultiRenderer.setMarginsColor(Color.parseColor("#FFF7F8"));
 
-        //setting chart min/max
+        myMultiRenderer.setMargins(new int[] {0, 0, 0, 0});
+
+
+//        setting chart min/max
         double bound = getMaxBound();
-        myMultiRenderer.setXAxisMin(-bound);
-        myMultiRenderer.setXAxisMax(bound);
+        myMultiRenderer.setXAxisMin(-bound/2);
+        myMultiRenderer.setXAxisMax(bound/2);
         myMultiRenderer.setYAxisMin(-bound);
         myMultiRenderer.setYAxisMax(bound);
 
